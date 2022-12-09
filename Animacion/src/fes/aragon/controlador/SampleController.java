@@ -24,9 +24,10 @@ import javafx.scene.control.Button;
 import javafx.util.Duration;
 
 public class SampleController implements Initializable {
-	Data<String, Number> primero = null;
-	Data<String, Number> segundo = null;
-	int tiempoRetardo = 20, numeroDatos = 100, min = 3, max = 100, min1 = 1, max1 = 2;
+	Data<String, Number> barrauno = null;
+	Data<String, Number> barrados = null;
+	int tiempoRetardo = 20, numeroDatos = 100, min = 3, max = 100, min1 = 1,
+			max1 = 2, indiceuno = 0, indicedos = 0;
 	Persona persona[] = new Persona[numeroDatos];
 
 	@FXML
@@ -159,20 +160,22 @@ public class SampleController implements Initializable {
 			@Override
 			protected Void call() throws Exception {
 				ObservableList<Data<String, Number>> data = series.getData();
-				for (int i = data.size() - 1; i >= 0; i--) {
-					for (int j = 0; j < i; j++) {
-						primero = data.get(j);
-						segundo = data.get(j + 1);
-
+				for (int i = 0; i < data.size()-1; i++) {
+					for (int j = data.size() - 1; j > i; j--) {
+						barrauno = data.get(j);
+						barrados = data.get(j - 1);
+						indiceuno = j;
+						indicedos = j-1;
+						
 						Platform.runLater(() -> {
-							primero.getNode().setStyle("-fx-background-color: red ;");
-							segundo.getNode().setStyle("-fx-background-color: blue ;");
+							barrauno.getNode().setStyle("-fx-background-color: red ;");
+							barrados.getNode().setStyle("-fx-background-color: blue ;");
 						});
 						Thread.sleep(tiempoRetardo);
-						if (primero.getYValue().doubleValue() >= segundo.getYValue().doubleValue()) {
+						if (barrauno.getYValue().doubleValue() < barrados.getYValue().doubleValue()) {
 							CountDownLatch latch = new CountDownLatch(1);
 							Platform.runLater(() -> {
-								Animation swap = createSwapAnimation(primero, segundo);
+								Animation swap = createSwapAnimation(barrauno, barrados, persona, indiceuno, indicedos);
 								swap.setOnFinished(e -> latch.countDown());
 								swap.play();
 							});
@@ -180,8 +183,8 @@ public class SampleController implements Initializable {
 						}
 						Thread.sleep(tiempoRetardo);
 						Platform.runLater(() -> {
-							primero.getNode().setStyle("-fx-background-color: blue ;");
-							segundo.getNode().setStyle("-fx-background-color: red ;");
+							barrauno.getNode().setStyle("-fx-background-color: blue ;");
+							barrados.getNode().setStyle("-fx-background-color: red ;");
 						});
 					}
 				}
@@ -208,32 +211,35 @@ public class SampleController implements Initializable {
 				for (int i = 0; i < data.size(); i++) {
 					min = i;
 					for (int j = i + 1; j < data.size(); j++) {
-						primero = data.get(j);
-						segundo = data.get(min);
+						barrauno = data.get(j);
+						barrados = data.get(min);
+						
 						Platform.runLater(() -> {
-							primero.getNode().setStyle("-fx-background-color: red ;");
-							segundo.getNode().setStyle("-fx-background-color: blue ;");
+							barrauno.getNode().setStyle("-fx-background-color: red ;");
+							barrados.getNode().setStyle("-fx-background-color: blue ;");
 						});
 						Thread.sleep(tiempoRetardo);
-						if (primero.getYValue().doubleValue() < segundo.getYValue().doubleValue()) {
+						if (barrauno.getYValue().doubleValue() < barrados.getYValue().doubleValue()) {
 							min = j;
 						}
 					}
 					if (i != min) {
-						primero = data.get(i);
-						segundo = data.get(min);
+						barrauno = data.get(i);
+						barrados = data.get(min);
+						indiceuno = i;
+						indicedos = min;
 
 						CountDownLatch latch = new CountDownLatch(1);
 						Platform.runLater(() -> {
-							Animation swap = createSwapAnimation(primero, segundo);
+							Animation swap = createSwapAnimation(barrauno, barrados, persona, indiceuno, indicedos);
 							swap.setOnFinished(e -> latch.countDown());
 							swap.play();
 						});
 						latch.await();
 						Thread.sleep(tiempoRetardo);
 						Platform.runLater(() -> {
-							primero.getNode().setStyle("-fx-background-color: blue ;");
-							segundo.getNode().setStyle("-fx-background-color: red ;");
+							barrauno.getNode().setStyle("-fx-background-color: blue ;");
+							barrados.getNode().setStyle("-fx-background-color: red ;");
 						});
 
 					}
@@ -249,32 +255,37 @@ public class SampleController implements Initializable {
 	 * Método en el que se intercambian, gráficamente las barras.
 	 * 
 	 * @param <T>
-	 * @param primero
-	 * @param segundo
+	 * @param barrauno
+	 * @param barrados
 	 * @return
 	 */
-	private <T> Animation createSwapAnimation(Data<?, T> primero, Data<?, T> segundo) {
-		double primeroX = primero.getNode().getParent().localToScene(primero.getNode().getBoundsInParent()).getMinX();
-		double segundoX = primero.getNode().getParent().localToScene(segundo.getNode().getBoundsInParent()).getMinX();
+	private <T> Animation createSwapAnimation(Data<?, T> barrauno, Data<?, T> barrados, Persona arreglo[], int i, int j) {
+		double barraunoX = barrauno.getNode().getParent().localToScene(barrauno.getNode().getBoundsInParent()).getMinX();
+		double barradosX = barrauno.getNode().getParent().localToScene(barrados.getNode().getBoundsInParent()).getMinX();
 
-		double primeroStartTranslate = primero.getNode().getTranslateX();
-		double segundoStartTranslate = segundo.getNode().getTranslateX();
+		double barraunoStartTranslate = barrauno.getNode().getTranslateX();
+		double barradosStartTranslate = barrados.getNode().getTranslateX();
 
-		TranslateTransition primeroTranslate = new TranslateTransition(Duration.millis(tiempoRetardo),
-				primero.getNode());
-		primeroTranslate.setByX(segundoX - primeroX);
-		TranslateTransition segundoTranslate = new TranslateTransition(Duration.millis(tiempoRetardo),
-				segundo.getNode());
-		segundoTranslate.setByX(primeroX - segundoX);
-		ParallelTransition translate = new ParallelTransition(primeroTranslate, segundoTranslate);
+		TranslateTransition barraunoTranslate = new TranslateTransition(Duration.millis(tiempoRetardo),
+				barrauno.getNode());
+		barraunoTranslate.setByX(barradosX - barraunoX);
+		TranslateTransition barradosTranslate = new TranslateTransition(Duration.millis(tiempoRetardo),
+				barrados.getNode());
+		barradosTranslate.setByX(barraunoX - barradosX);
+		ParallelTransition translate = new ParallelTransition(barraunoTranslate, barradosTranslate);
 
 		translate.statusProperty().addListener((obs, oldStatus, newStatus) -> {
 			if (oldStatus == Animation.Status.RUNNING) {
-				T temp = primero.getYValue();
-				primero.setYValue(segundo.getYValue());
-				segundo.setYValue(temp);
-				primero.getNode().setTranslateX(primeroStartTranslate);
-				segundo.getNode().setTranslateX(segundoStartTranslate);
+				T barraTemp = barrauno.getYValue();
+				barrauno.setYValue(barrados.getYValue());
+				barrados.setYValue(barraTemp);
+				
+				int edadTemp = arreglo[i].getEdad();
+				arreglo[i].setEdad(arreglo[min].getEdad());
+				arreglo[min].setEdad(edadTemp);
+				
+				barrauno.getNode().setTranslateX(barraunoStartTranslate);
+				barrados.getNode().setTranslateX(barradosStartTranslate);
 			}
 		});
 
